@@ -10,16 +10,3 @@ class aliXlsTask(multiprocessing.Process):
         print 'alixls start'
         run = saveAlixls()
         run.run()
-
-if __name__ == '__main__':
-    # resetTABLES('PRODUCT_DATA')
-    from lib.baselib import *
-    xlsfile = 'a-2016-03-15.xls'
-    s = time.time()
-    b = DateStrtoFloat(DateFloattoStr())  + 36600
-    d = DateStrtoFloat()  + 36600
-    c = DateFloattoStr(b,0)
-    print s
-    print b
-    print c
-    print d

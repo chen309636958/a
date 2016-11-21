@@ -5,8 +5,7 @@ from lib.DB import connDB,fetchDB
 from tqdm import tqdm
 from MySQLdb import Error as DBERROR
 import xlrd
-from config import XLS_URL,DX_APPLY_REASON, PID
-from var_dump import var_dump
+from config import XLS_URL
 warnings.filterwarnings("ignore")
 
 class saveAlixls(object):
@@ -70,7 +69,7 @@ class saveAlixls(object):
                 quanrest,#'17 QUAN_REST':
                 quantotal,#'18 QUAN_TOTAL':
                 # int(time.mktime(time.strptime(rowdata[19] + ' 23:59:59', '%Y-%m-%d %H:%M:%S'))),#'QUAN_DEADTIME':
-                int(time.mktime(time.strptime(rowdata[19], '%Y-%m-%d'))),#'19 QUAN_DEADTIME':
+                DateStrtoFloat(rowdata[19]),#'19 QUAN_DEADTIME':
                 rowdata[4],#'21 TAG':
                 commrate,#25 COMM_RATE
                 rowdata[5],#26 COMM_SCLICK
