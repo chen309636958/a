@@ -165,7 +165,7 @@ def DateStrtoFloat(*args):
     :param args: 输入格式化字符串 转换为 时间戳
     :return:
     """
-    datestr = args[0] if args else DateFloattoStr()
+    datestr = args[0] if args else time.strftime('%Y-%m-%d',time.localtime())
     return time.mktime(time.strptime(datestr,'%Y-%m-%d'))
 
 def timer(func):

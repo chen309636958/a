@@ -1,10 +1,10 @@
 # coding=utf-8
 from lib.buildAliSession import buildAliSession
 from lib.baselib import *
-from lib.DB import connDB,getDataFromDB
+from lib.DB import connDB,fetchDB
 from tqdm import tqdm
 from MySQLdb import Error as DBERROR
-import xlrd, glob
+import xlrd
 from config import XLS_URL,DX_APPLY_REASON, PID
 from var_dump import var_dump
 warnings.filterwarnings("ignore")
@@ -14,8 +14,10 @@ class saveAlixls(object):
         self.session = buildAliSession()
         self.tb_token = self.session.cookies['_tb_token_']
         self.pvid = ''
-        self.xls_updatetime = DateStrtoFloat(DateFloattoStr()) + 36600
+        self.xls_updatetime = DateStrtoFloat() + 36600
         self.xls_date = self.xlsUpDate()
+        self.xls_filetime = DateStrtoFloat(self.xls_date)
+        self.xls_filename = 'ali1w-{}.xls'.format(self.xls_date)
     def xlsUpDate(self):
         filedate = self.xls_updatetime if time.time() >= self.xls_updatetime else self.xls_updatetime - 86400
         return DateFloattoStr(filedate)
@@ -23,31 +25,16 @@ class saveAlixls(object):
         """
         :return:
         """
-        xls_filename = 'ali1w-{}.xls'.format(self.xls_date)
         url = XLS_URL
         r = robustHttpConn(url, session = self.session,method = 'get',stream = True)
-        with open(xls_filename, 'wb') as f:
+        with open(self.xls_filename, 'wb') as f:
             for chunk in tqdm(r.iter_content(chunk_size = 1024)):
                 f.write(chunk)
-        return xls_filename
-    def readAlixls(self):
-        """
-        :return:
-        """
-        xlsfile = glob.glob(r'ali1w-*.xls')
-        filesavetime = time.mktime(time.strptime(strCompile(xlsfile, '-(\d+-\d+-\d+)'),'%Y-%m-%d'))
-        filesavetime = strCompile(xlsfile, '-(\d+-\d+-\d+)_') if xlsfile else 0
-        if self.xls_updatetime - filesavetime > 86400:
-            oldxls = xlsfile
-            xlsfile = self.saveAlixls()
-            os.remove(oldxls)
-        data = xlrd.open_workbook(xlsfile)
-
+    def formatAlixls(self):
+        if not os.path.isfile(self.xls_filename):self.saveAlixls()
+        data = xlrd.open_workbook(self.xls_filename)
         table = data.sheets()[0]
         tabledata =[table.row_values(rownum) for rownum in xrange(1,table.nrows)]
-        return tabledata
-    def formatAlixls(self):
-        tabledata = self.readAlixls()
         productlist = list()
         for rowdata in tabledata:
         # for rowdata in tabledata[100:200]:
@@ -92,25 +79,49 @@ class saveAlixls(object):
         return productlist
     @timer
     def run(self):
-        print self.xlsUpDate()
-        # xlssaved = getDataFromDB("""SELECT XLS_SAVED_DATE FROM DATA_SAVE_STATUS""")
-        # nowdate = currentDateStr()
-        # if nowdate in xlssaved:
-        #     logger.info(u'The {} xls saved'.format(nowdate))
-        # else:
-        #     productlist = self.formatAlixls()
-        #     sql = """INSERT IGNORE INTO PRODUCT_DATA (AUCTION_ID,SOURCE,PRODUCT_URL,IS_MALL,TITLE,PIC_URL,MONTH_SELL,SELLER_ID,ACTIVITY_ID,ORIGINAL_PRICE,DISCOUNT_PRICE,QUAN_VALUE,QUAN_STR,QUAN_URL,QUAN_ADPURL,QUAN_USED,QUAN_REST,QUAN_TOTAL,QUAN_DEADTIME,TAG,COMM_RATE,COMM_SCLICK,COMM_COMP_URL)VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-        #     conn = connDB()
-        #     cur = conn.cursor()
-        #     try:
-        #         cur.executemany(sql,productlist)
-        #         conn.commit()
-        #         cur.execute("""INSERT INTO DATA_SAVE_STATUS (XLS_SAVED_DATE) VALUES (%s)"""%self.xlssavedate,)
-        #         logger.info(u'保存数据成功，共存入{}条数据'.format(len(productlist)))
-        #     except DBERROR as e:
-        #         logger.error(u'保存数据失败：{}'.format(e))
-        #         conn.rollback()
-        #     conn.close()
+        xlssaved = fetchDB("""SELECT XLS_SAVED_DATE FROM DATA_SAVE_STATUS LIMIT 1""",0)
+        if xlssaved is not None and self.xls_filetime in xlssaved:
+            logger.info(u'The {} xls had been saved'.format(self.xls_date))
+        else:
+            productlist = self.formatAlixls()
+            sql = """INSERT IGNORE INTO PRODUCT_DATA (
+                    AUCTION_ID,
+                    SOURCE,
+                    PRODUCT_URL,
+                    IS_MALL,
+                    TITLE,
+                    PIC_URL,
+                    MONTH_SELL,
+                    SELLER_ID,
+                    ACTIVITY_ID,
+                    ORIGINAL_PRICE,
+                    DISCOUNT_PRICE,
+                    QUAN_VALUE,
+                    QUAN_STR,
+                    QUAN_URL,
+                    QUAN_ADPURL,
+                    QUAN_USED,
+                    QUAN_REST,
+                    QUAN_TOTAL,
+                    QUAN_DEADTIME,
+                    TAG,
+                    COMM_RATE,
+                    COMM_SCLICK,
+                    COMM_COMP_URL
+                    )VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            conn = connDB()
+            cur = conn.cursor()
+            try:
+                cur.executemany(sql,productlist)
+                conn.commit()
+                cur.execute("INSERT INTO DATA_SAVE_STATUS (XLS_SAVED_DATE) VALUES (%s)"%self.xls_filetime)
+                conn.commit()
+                logger.info(u'保存数据成功，共存入{}条数据'.format(len(productlist)))
+                os.remove(self.xls_filename)
+            except DBERROR as e:
+                logger.error(u'保存数据失败：{}'.format(e))
+                conn.rollback()
+            conn.close()
 
 
 

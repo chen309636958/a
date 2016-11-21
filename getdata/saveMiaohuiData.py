@@ -1,6 +1,6 @@
 # coding=utf-8
 from lib.baselib import getRealAliUrl,urllib,strCompile,quanCheck,robustHttpConn,time
-from lib.DB import connDB,existAID,getDataFromDB
+from lib.DB import connDB,existAID,fetchDB
 from multiprocessing import Pool as ThreadPool ,freeze_support
 from itertools import repeat
 

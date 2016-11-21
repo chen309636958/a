@@ -37,7 +37,8 @@ PRODUCT_DATA_SQL = """CREATE TABLE PRODUCT_DATA (
                   );
 """
 DATA_SAVE_STATUS_SQL = """CREATE TABLE DATA_SAVE_STATUS(
-                  XLS_SAVED_DATE CHAR(10) DEFAULT '' COMMENT '保存xls日期' PRIMARY KEY
+                  ID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                  XLS_SAVED_DATE INT(10) DEFAULT 0 COMMENT '保存xls日期时间戳'
 );
 """
 WEIBO_CHANNEL_SQL = """CREATE TABLE WEIBO_CHANNEL(
@@ -132,14 +133,14 @@ def resetTABLES(table):
 
     conn.close()
 
-def getDataFromDB(sql,fetchall = True):
+def fetchDB(sql, fetchall = True):
     conn = connDB()
     cur = conn.cursor()
     cur.execute(sql)
-    result = cur.fetchall() if fetchall is True else cur.fetchone()
+    result = cur.fetchall() if fetchall else cur.fetchone()
     conn.close()
     return result
 
 def existAID():
-    return [i[0] for i in getDataFromDB('SELECT AUCTION_ID FROM PRODUCT_DATA')]
+    return [i[0] for i in fetchDB('SELECT AUCTION_ID FROM PRODUCT_DATA')]
 
