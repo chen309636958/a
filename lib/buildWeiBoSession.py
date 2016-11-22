@@ -2,7 +2,8 @@
 from lib.baselib import *
 from PIL import Image
 from cStringIO import StringIO
-from config import WUSERNAME,WPASSWD,USER_AGENT,VERIFY_CODE_PATH
+from config import WUSERNAME,WPASSWD,USER_AGENT,VERIFY_CODE_PATH,ROOTPATH
+cookiefile = r'{}\wb_cookies.pkl'.format(ROOTPATH)
 def setWeiBoCookie():
     headers = {
         'User-Agent': USER_AGENT,
@@ -52,16 +53,13 @@ def setWeiBoCookie():
                 img = Image.open(imgdata)
                 img = img.crop((left, top, right, bottom))
                 img.save(VERIFY_CODE_PATH, quality=20)
-                # img.save(u'../../ichen/1.jpg', quality=20)
             else:
                 print(u'your input verify code:{}'.format(woverifycode))
                 break
         verify.send_keys(woverifycode)
     sbtn.click()
-    # WebDriverWait(driver, 30).until(EC.title_contains(u'随时随地'))
     time.sleep(3)
-    # WebDriverWait(driver,30).until(EC.presence_of_element_located((By.CLASS_NAME,)))
-    cPickle.dump(driver.get_cookies(), open("./wbcookies.pkl", "wb"))
+    cPickle.dump(driver.get_cookies(), open(cookiefile, "wb"))
     print(u'Set Weibo cookie done')
     driver.close()
     driver.quit()
@@ -83,18 +81,16 @@ def buildWeiBoSession():
     }
     session = requests.session()
     session.headers.update(headers)
-    if os.path.isfile("wbcookies.pkl"):
-        cookies = cPickle.load(open("wbcookies.pkl", "rb"))
-    else:
+    if not os.path.isfile(cookiefile):
         setWeiBoCookie()
-        cookies = cPickle.load(open("wbcookies.pkl", "rb"))
+    cookies = cPickle.load(open(cookiefile, "rb"))
     for cookie in cookies:
         session.cookies.set(cookie['name'], cookie['value'])
     islogin = robustHttpConn('http://m.weibo.cn',headers=mwbheader,session=session, allow_redirects=False)
     if islogin.status_code == 302:
         print(u'微博cookie失效')
         setWeiBoCookie()
-        cookies = cPickle.load(open("wbcookies.pkl", "rb"))
+        cookies = cPickle.load(open(cookiefile, "rb"))
         for cookie in cookies:
             session.cookies.set(cookie['name'], cookie['value'])
     elif islogin.status_code == 200:

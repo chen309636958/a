@@ -5,10 +5,10 @@ from lib.DB import connDB,fetchDB
 from tqdm import tqdm
 from MySQLdb import Error as DBERROR
 import xlrd
-from config import XLS_URL
+from config import XLS_URL,ROOTPATH
 warnings.filterwarnings("ignore")
 
-class saveAlixls(object):
+class getAlixls(object):
     def __init__(self):
         self.session = buildAliSession()
         self.tb_token = self.session.cookies['_tb_token_']
@@ -16,11 +16,11 @@ class saveAlixls(object):
         self.xls_updatetime = DateStrtoFloat() + 36600
         self.xls_date = self.xlsUpDate()
         self.xls_filetime = DateStrtoFloat(self.xls_date)
-        self.xls_filename = 'ali1w-{}.xls'.format(self.xls_date)
+        self.xls_filename = r'{}\ali1w-{}.xls'.format(ROOTPATH,self.xls_date)
     def xlsUpDate(self):
         filedate = self.xls_updatetime if time.time() >= self.xls_updatetime else self.xls_updatetime - 86400
         return DateFloattoStr(filedate)
-    def saveAlixls(self):
+    def getxls(self):
         """
         :return:
         """
@@ -30,7 +30,7 @@ class saveAlixls(object):
             for chunk in tqdm(r.iter_content(chunk_size = 1024)):
                 f.write(chunk)
     def formatAlixls(self):
-        if not os.path.isfile(self.xls_filename):self.saveAlixls()
+        if not os.path.isfile(self.xls_filename):self.getxls()
         data = xlrd.open_workbook(self.xls_filename)
         table = data.sheets()[0]
         tabledata =[table.row_values(rownum) for rownum in xrange(1,table.nrows)]
@@ -40,7 +40,7 @@ class saveAlixls(object):
             auctionid = int(rowdata[0])
             sellerid = int(rowdata[11])
             activityid = rowdata[14]
-            (ismall,producturl) = (0,'https://item.taobao.com/item.htm?id={}'.format(auctionid)) if rowdata[13] is u'淘宝' else (1,'https://detail.tmall.com/item.htm?id={}'.format(auctionid))
+            (ismall,producturl) = (2,'https://item.taobao.com/item.htm?id={}'.format(auctionid)) if rowdata[13] == u'淘宝' else (1,'https://detail.tmall.com/item.htm?id={}'.format(auctionid))
             quanstr = rowdata[17]
             quanvalue = int(strCompile(quanstr,u'减(\d+)元')) if u'减' in quanstr else int(strCompile(quanstr,u'(\d+)元无条件'))
             originalprice = float(rowdata[6])
@@ -123,5 +123,7 @@ class saveAlixls(object):
             conn.close()
 
 
+if __name__ == '__main__':
+    getAlixls().formatAlixls()
 
 

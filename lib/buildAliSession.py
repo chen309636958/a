@@ -1,6 +1,7 @@
 # coding=utf-8
 from lib.baselib import *
-from config import USER_AGENT
+from config import USER_AGENT,ROOTPATH
+cookiefile = r'{}\tb_cookies.pkl'.format(ROOTPATH)
 def setAliCookie():
     """
     "登录淘宝，更新cookie"
@@ -17,7 +18,7 @@ def setAliCookie():
         browser.find_element_by_id('J_SubmitQuick').click()
     WebDriverWait(browser, 100).until(EC.title_contains(u'阿里妈妈'))
     logger.info(u'阿里妈妈cookie已更新')
-    cPickle.dump(browser.get_cookies(), open("tb_cookies.pkl", "wb"))
+    cPickle.dump(browser.get_cookies(), open(cookiefile, "wb"))
     browser.close()
     browser.quit()
 
@@ -34,18 +35,16 @@ def buildAliSession():
     }
     session = requests.session()
     session.headers.update(headers)
-    if os.path.isfile("tb_cookies.pkl"):
-        cookies = cPickle.load(open("tb_cookies.pkl", "rb"))
-    else:
+    if not os.path.isfile(cookiefile):
         setAliCookie()
-        cookies = cPickle.load(open("tb_cookies.pkl", "rb"))
+    cookies = cPickle.load(open(cookiefile, "rb"))
     for cookie in cookies:
         session.cookies.set(cookie['name'], cookie['value'])
     islogin = robustHttpConn('http://pub.alimama.com/myunion.htm', session=session, allow_redirects=False)
     if islogin.status_code == 302:
         logger.info(u'阿里妈妈cookie失效，重新登录')
         setAliCookie()
-        cookies = cPickle.load(open("tb_cookies.pkl", "rb"))
+        cookies = cPickle.load(open(cookiefile, "rb"))
         for cookie in cookies:
             session.cookies.set(cookie['name'], cookie['value'])
     elif islogin.status_code == 200:

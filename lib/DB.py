@@ -144,3 +144,5 @@ def fetchDB(sql, fetchall = True):
 def existAID():
     return [i[0] for i in fetchDB('SELECT AUCTION_ID FROM PRODUCT_DATA')]
 
+if __name__ == '__main__':
+    resetDB()
