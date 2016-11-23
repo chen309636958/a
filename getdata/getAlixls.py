@@ -1,7 +1,7 @@
 # coding=utf-8
 from lib.buildAliSession import buildAliSession
 from lib.baselib import *
-from lib.DB import connDB,fetchDB
+from lib.DB import connDB,fetchDB,countTable
 from tqdm import tqdm
 from MySQLdb import Error as DBERROR
 import xlrd
@@ -83,7 +83,7 @@ class getAlixls(object):
             logger.info(u'The {} xls had been saved'.format(self.xls_date))
         else:
             productlist = self.formatAlixls()
-            sql = """INSERT IGNORE INTO PRODUCT_DATA (
+            sql = """INSERT INTO PRODUCT_DATA (
                     AUCTION_ID,
                     SOURCE,
                     PRODUCT_URL,
@@ -107,23 +107,32 @@ class getAlixls(object):
                     COMM_RATE,
                     COMM_SCLICK,
                     COMM_COMP_URL
-                    )VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+                    )values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             conn = connDB()
             cur = conn.cursor()
-            try:
-                cur.executemany(sql,productlist)
-                conn.commit()
-                cur.execute("INSERT INTO DATA_SAVE_STATUS (XLS_SAVED_DATE) VALUES (%s)"%self.xls_filetime)
-                conn.commit()
-                logger.info(u'保存数据成功，共存入{}条数据'.format(len(productlist)))
-                os.remove(self.xls_filename)
-            except DBERROR as e:
-                logger.error(u'保存数据失败：{}'.format(e))
-                conn.rollback()
+            cur.executemany(sql,productlist)
+            cur.execute("INSERT INTO DATA_SAVE_STATUS (XLS_SAVED_DATE) VALUES (%s)"%self.xls_filetime)
+            conn.commit()
+            # try:
+            #     cur.executemany(sql,productlist)
+            #     conn.commit()
+            #     cur.execute("INSERT INTO DATA_SAVE_STATUS (XLS_SAVED_DATE) VALUES (%s)"%self.xls_filetime)
+            #     conn.commit()
+            #     logger.info(u'保存数据成功，共存入{}条数据'.format(len(productlist)))
+            #     os.remove(self.xls_filename)
+            # except DBERROR as e:
+            #     logger.error(u'保存数据失败：{}'.format(e))
+            #     conn.rollback()
             conn.close()
+            return len(productlist)
 
 
 if __name__ == '__main__':
-    getAlixls().formatAlixls()
-
+    s = getAlixls()
+    res1 = countTable('product_data')
+    res2 = s.run()
+    res3 = countTable('product_data')
+    print res1
+    print res2
+    print res3
 

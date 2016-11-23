@@ -16,8 +16,10 @@ def checkquandate():
     except:
         conn.rollback()
     conn.close()
-
+@timer
+def asd():
+    return fetchDB("""select count(*) from product_data""")
 if __name__ == '__main__':
-    checkquandate()
-    r = fetchDB("""select * from product_data where IS_MALL = 1""")
+    from lib.baselib import *
+    r = DateFloattoStr(1480089600)
     print r

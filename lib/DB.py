@@ -1,10 +1,10 @@
 # coding=utf-8
-import sys
+from baselib import timer
 import MySQLdb
 from logger import logger
 from config import DBUSER,DBPASSWD
 
-PRODUCT_DATA_SQL = """CREATE TABLE PRODUCT_DATA (
+PRODUCT_SQL = """CREATE TABLE PRODUCT (
                   ID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                   AUCTION_ID BIGINT(13) UNSIGNED UNIQUE DEFAULT 0 COMMENT '商品id',
                   SOURCE TINYINT(2) UNSIGNED DEFAULT 0 COMMENT '来源 默认0，1：阿里后台，2：喵惠',
@@ -14,6 +14,18 @@ PRODUCT_DATA_SQL = """CREATE TABLE PRODUCT_DATA (
                   PIC_URL VARCHAR(100) DEFAULT '' COMMENT '图片链接',
                   MONTH_SELL INT UNSIGNED DEFAULT 0 COMMENT '月销量',
                   SELLER_ID BIGINT(11) UNSIGNED DEFAULT 0 COMMENT '商家id',
+                  IS_WB TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '是否发送微博',
+                  TAG VARCHAR(60) DEFAULT '' COMMENT '标签',
+                  ALITYPE TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '选择链接：通用and鹊桥：1，定向：3',
+                  DX_RATE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '定向计划Rate',
+                  DX_ID INT UNSIGNED DEFAULT 0 COMMENT '定向计划id',
+                  COMM_RATE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '通用或鹊桥Rate',
+                  COMM_SCLICK VARCHAR(500) DEFAULT '' COMMENT '网站端通用淘宝客链接',
+                  IS_SELECT TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '是否添加到选品库中 已添加 1 未添加 0'
+                  );
+"""
+QUAN_SQL = """CREATE TABLE PRODUCT (
+                  ID INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                   ACTIVITY_ID CHAR(35) DEFAULT '' COMMENT '优惠券id',
                   ORIGINAL_PRICE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '原价',
                   DISCOUNT_PRICE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '折扣价',
@@ -25,15 +37,7 @@ PRODUCT_DATA_SQL = """CREATE TABLE PRODUCT_DATA (
                   QUAN_REST INT(6) UNSIGNED DEFAULT 0 COMMENT '券剩余量',
                   QUAN_TOTAL INT(6) UNSIGNED DEFAULT 0 COMMENT '券总量',
                   QUAN_DEADTIME INT(10) UNSIGNED DEFAULT 0 COMMENT '券过期时间戳',
-                  IS_WB TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '是否发送微博',
-                  TAG VARCHAR(60) DEFAULT '' COMMENT '标签',
-                  ALITYPE TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '选择链接：通用and鹊桥：1，定向：3',
-                  DX_RATE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '定向计划Rate',
-                  DX_ID INT UNSIGNED DEFAULT 0 COMMENT '定向计划id',
-                  COMM_RATE DECIMAL(5,2) UNSIGNED DEFAULT 0.00 COMMENT '通用或鹊桥Rate',
-                  COMM_SCLICK VARCHAR(280) DEFAULT '' COMMENT '网站端通用淘宝客链接',
-                  COMM_COMP_URL VARCHAR(280) DEFAULT '' COMMENT '网站端通用二合一链接',
-                  IS_SELECT TINYINT(1) UNSIGNED DEFAULT 0 COMMENT '是否添加到选品库中 已添加 1 未添加 0'
+                  COMM_COMP_URL VARCHAR(500) DEFAULT '' COMMENT '网站端通用二合一链接',
                   );
 """
 DATA_SAVE_STATUS_SQL = """CREATE TABLE DATA_SAVE_STATUS(
@@ -85,7 +89,7 @@ def resetDB(confirm = 0):
         conn.commit()
         cur.execute("""DROP TABLE IF EXISTS PRODUCT_DATA,DATA_SAVE_STATUS,WEIBO_CHANNEL, WEIBO_UPED;""")
         conn.commit()
-        cur.execute(PRODUCT_DATA_SQL)
+        cur.execute(PRODUCT_SQL)
         conn.commit()
         cur.execute(DATA_SAVE_STATUS_SQL)
         conn.commit()
@@ -109,7 +113,7 @@ def resetTABLES(table):
         if table in ['PRODUCT_DATA','product_data']:
             cur.execute("""DROP TABLE IF EXISTS PRODUCT_DATA""")
             conn.commit()
-            cur.execute(PRODUCT_DATA_SQL)
+            cur.execute(PRODUCT_SQL)
             conn.commit()
         elif table in ['WEIBO_CHANNEL','weibo_channel']:
             cur.execute("""DROP TABLE IF EXISTS WEIBO_CHANNEL""")
@@ -143,6 +147,13 @@ def fetchDB(sql, fetchall = True):
 
 def existAID():
     return [i[0] for i in fetchDB('SELECT AUCTION_ID FROM PRODUCT_DATA')]
-
+@timer
+def countTable(table):
+    conn = connDB()
+    cur = conn.cursor()
+    cur.execute("""select count(*) from %s"""%table)
+    res = cur.fetchone()
+    conn.close()
+    return res
 if __name__ == '__main__':
     resetDB()
